@@ -1,0 +1,21 @@
+
+# Additional security exclusions
+*.pem
+*.p12
+*.jks
+*.keystore
+wallet/
+tnsnames.ora
+sqlnet.ora
+cwallet.sso
+ewallet.p12
+oracle.key
+oracle.crt
+
+# Environment and credentials
+.env
+.env.local
+.env.production
+credentials.json
+secrets.yaml
+vault/
