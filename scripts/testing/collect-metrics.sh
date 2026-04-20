@@ -7,8 +7,8 @@
 set -euo pipefail
 
 # SSH Configuration
-SSH_KEY="/Users/maniselvank/Desktop/Mani/ssh-key-2026-03-12.key"
-SSH_HOST="opc@129.146.31.189"
+SSH_KEY="<path-to-ssh-key>"
+SSH_HOST="<ssh-user>@<oracle-host-ip>"
 
 # Oracle Environment
 ORACLE_HOME="/usr/lib/oracle/19.29/client64"
@@ -45,7 +45,7 @@ export ORACLE_HOME=/usr/lib/oracle/19.29/client64
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib
 export TNS_ADMIN=$HOME/oracle/network/admin
 
-sqlplus -S sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOSQL'
+sqlplus -S sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOSQL'
 SET LINESIZE 200 PAGESIZE 500
 SET FEEDBACK ON VERIFY OFF HEADING ON
 
@@ -113,7 +113,7 @@ export ORACLE_HOME=/usr/lib/oracle/19.29/client64
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib
 export TNS_ADMIN=$HOME/oracle/network/admin
 
-sqlplus -S sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOSQL'
+sqlplus -S sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOSQL'
 SET LINESIZE 200 PAGESIZE 100
 COLUMN redo_mb FORMAT 999,999,999.99
 
@@ -151,7 +151,7 @@ export ORACLE_HOME=/usr/lib/oracle/19.29/client64
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib
 export TNS_ADMIN=$HOME/oracle/network/admin
 
-sqlplus -S sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOSQL'
+sqlplus -S sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOSQL'
 SET LINESIZE 200 PAGESIZE 100
 ALTER SESSION SET CONTAINER = CDB$ROOT;
 
@@ -161,12 +161,12 @@ FROM DBA_XSTREAM_OUTBOUND;
 
 PROMPT ========== XStream Capture Status ==========
 SELECT CAPTURE_NAME, QUEUE_OWNER, QUEUE_NAME, STATUS, START_SCN, SOURCE_DATABASE
-FROM DBA_CAPTURE WHERE CAPTURE_NAME = 'CONFLUENT_XOUT1';
+FROM DBA_CAPTURE WHERE CAPTURE_NAME = '<xstream-outbound-name>';
 
 PROMPT ========== XStream Capture State (RAC Instances) ==========
 SELECT INST_ID, CAPTURE_NAME, STATE, STARTUP_TIME,
        TOTAL_MESSAGES_CAPTURED, TOTAL_MESSAGES_ENQUEUED
-FROM GV$XSTREAM_CAPTURE WHERE CAPTURE_NAME = 'CONFLUENT_XOUT1';
+FROM GV$XSTREAM_CAPTURE WHERE CAPTURE_NAME = '<xstream-outbound-name>';
 
 PROMPT ========== XStream Outbound Server Statistics ==========
 SELECT SERVER_NAME,
@@ -211,12 +211,12 @@ export ORACLE_HOME=/usr/lib/oracle/19.29/client64
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib
 export TNS_ADMIN=$HOME/oracle/network/admin
 
-sqlplus -S sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOSQL'
+sqlplus -S sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOSQL'
 SET LINESIZE 200 PAGESIZE 100
-ALTER SESSION SET CONTAINER = XSTRPDB;
+ALTER SESSION SET CONTAINER = <pdb-name>;
 
 PROMPT ========== MTX_TRANSACTION_ITEMS Current Count ==========
-SELECT COUNT(*) AS current_row_count FROM ORDERMGMT.MTX_TRANSACTION_ITEMS;
+SELECT COUNT(*) AS current_row_count FROM <schema-name>.MTX_TRANSACTION_ITEMS;
 
 PROMPT ========== MTX Tables Row Counts and Sizes ==========
 SELECT table_name,
@@ -224,7 +224,7 @@ SELECT table_name,
        avg_row_len,
        ROUND(num_rows * NVL(avg_row_len, 0) / 1024 / 1024, 2) AS approx_data_mb
 FROM dba_tables
-WHERE owner = 'ORDERMGMT'
+WHERE owner = '<schema-name>'
   AND table_name LIKE 'MTX%'
 ORDER BY num_rows DESC NULLS LAST
 FETCH FIRST 25 ROWS ONLY;
@@ -232,7 +232,7 @@ FETCH FIRST 25 ROWS ONLY;
 PROMPT ========== Max Average Row Length for MTX Tables ==========
 SELECT MAX(avg_row_len) AS max_avg_row_bytes_among_mtx
 FROM dba_tables
-WHERE owner = 'ORDERMGMT' AND table_name LIKE 'MTX%' AND avg_row_len IS NOT NULL;
+WHERE owner = '<schema-name>' AND table_name LIKE 'MTX%' AND avg_row_len IS NOT NULL;
 
 EXIT;
 EOSQL
