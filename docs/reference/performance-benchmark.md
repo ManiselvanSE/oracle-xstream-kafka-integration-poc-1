@@ -179,7 +179,7 @@
 
 **Purpose:** 30-minute sustained load test (MTX_TRANSACTION_ITEMS)  
 **Mode:** items_only (single table, maximum throughput)  
-**Schema:** ORDERMGMT.MTX_TRANSACTION_ITEMS  
+**Schema:** <schema-name>.MTX_TRANSACTION_ITEMS  
 **Concurrent Sessions:** 48 active database sessions  
 **Test Pattern:** Continuous INSERT operations
 
@@ -237,8 +237,8 @@
 
 ### Oracle Database
 - ✅ RAC cluster (2 nodes) operational throughout test
-- ✅ PDB: XSTRPDB
-- ✅ XStream: CONFLUENT_XOUT1
+- ✅ PDB: <pdb-name>
+- ✅ XStream: <xstream-outbound-name>
 - ✅ Capture process: ENABLED
 - ✅ 48 concurrent sessions handled successfully
 - ✅ Clean session termination post-test
@@ -251,7 +251,7 @@
 
 ### Monitoring
 - ✅ Progress monitoring active (60-second intervals)
-- ✅ Grafana: http://137.131.53.98:3000
+- ✅ Grafana: http://<kafka-vm-ip>:3000
 - ✅ Real-time metrics captured
 - ✅ Monitoring log: mtx-30min-progress.log
 
@@ -631,10 +631,10 @@ Recommendation:       READY FOR PRODUCTION
 ### Database Configuration
 - Database: Oracle 19c RAC
 - Cluster: 2 nodes active
-- Container: XSTRPDB (PDB)
-- XStream: CONFLUENT_XOUT1 (CDB$ROOT)
+- Container: <pdb-name> (PDB)
+- XStream: <xstream-outbound-name> (CDB$ROOT)
 - Capture User: C##CFLTUSER
-- Table: ORDERMGMT.MTX_TRANSACTION_ITEMS
+- Table: <schema-name>.MTX_TRANSACTION_ITEMS
 - Committed Data Only: YES
 
 ### CDC Configuration
@@ -648,7 +648,7 @@ Recommendation:       READY FOR PRODUCTION
 ### Monitoring Configuration
 - Monitoring Interval: 60 seconds
 - Progress Log: mtx-30min-progress.log
-- Grafana: http://137.131.53.98:3000
+- Grafana: http://<kafka-vm-ip>:3000
 - Metrics: Row count, sessions, status
 - Duration: Continuous (30+ checks)
 
@@ -663,7 +663,7 @@ Recommendation:       READY FOR PRODUCTION
 
 ### Grafana Dashboards
 - XStream Throughput & Performance
-- URL: http://137.131.53.98:3000
+- URL: http://<kafka-vm-ip>:3000
 - Metrics: Throughput, lag, redo, sessions
 
 ### Supporting Evidence Required
