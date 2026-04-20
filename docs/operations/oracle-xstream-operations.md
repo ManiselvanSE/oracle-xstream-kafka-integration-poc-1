@@ -140,13 +140,13 @@ Purpose:
 
 **What's Special:**
 - Custom image includes Oracle XStream JDBC drivers
-- Connects to Oracle via TNS (RAC_XSTRPDB_POC service)
+- Connects to Oracle via TNS (<database-name>PDB_POC service)
 - REST API on 8083 for connector management
 - Single Connect worker (not distributed mode in this setup)
 
 **Key Configuration:**
 - Connector: `confluent-xstream-source`
-- Topics created: `ORDERMGMT.MTX_TRANSACTION_ITEMS` (and potentially 22 more MTX tables)
+- Topics created: `<schema-name>.MTX_TRANSACTION_ITEMS` (and potentially 22 more MTX tables)
 - Batch size: 5000 events
 - Poll interval: 1000ms
 
@@ -218,7 +218,7 @@ Purpose:
   - Custom dashboards for CDC pipeline monitoring
 ```
 
-**Access:** http://137.131.53.98:3000
+**Access:** http://<kafka-vm-ip>:3000
 
 **Dashboards (Likely):**
 - Kafka Cluster Overview
@@ -290,17 +290,17 @@ d0e1f2a3b4c5   danielqsj/kafka-exporter           9308/tcp                 kafka
 **Check Oracle RAC cluster status:**
 ```bash
 # Run on Oracle database server
-srvctl status database -d RAC_XSTR
+srvctl status database -d <database-name>
 
 # Expected output:
-Instance RAC_XSTR1 is running on node rac1
-Instance RAC_XSTR2 is running on node rac2
+Instance <database-name>1 is running on node rac1
+Instance <database-name>2 is running on node rac2
 ```
 
 **Check specific instance status:**
 ```bash
-srvctl status instance -d RAC_XSTR -i RAC_XSTR1
-srvctl status instance -d RAC_XSTR -i RAC_XSTR2
+srvctl status instance -d <database-name> -i <database-name>1
+srvctl status instance -d <database-name> -i <database-name>2
 ```
 
 **Check archive log mode:**
@@ -322,7 +322,7 @@ ARCHIVELOG   YES
 
 **Check XStream capture process:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SET LINESIZE 200
 COL capture_name FORMAT A20
 COL status FORMAT A10
@@ -335,7 +335,7 @@ SELECT capture_name,
        total_messages_captured,
        startup_time
 FROM v$xstream_capture 
-WHERE capture_name = 'CONFLUENT_XOUT1';
+WHERE capture_name = '<xstream-outbound-name>';
 
 EXIT;
 EOF
@@ -345,14 +345,14 @@ EOF
 ```
 CAPTURE_NAME         STATUS     STATE           TOTAL_MESSAGES_CAPTURED STARTUP_TIME
 -------------------- ---------- --------------- ----------------------- -------------------
-CONFLUENT_XOUT1      ENABLED    CAPTURING                  14,019,801  16-APR-26 12:29:00
+<xstream-outbound-name>      ENABLED    CAPTURING                  14,019,801  16-APR-26 12:29:00
 ```
 
 **If STATUS is DISABLED:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 BEGIN
-  DBMS_XSTREAM_ADM.START_CAPTURE(capture_name => 'CONFLUENT_XOUT1');
+  DBMS_XSTREAM_ADM.START_CAPTURE(capture_name => '<xstream-outbound-name>');
 END;
 /
 EXIT;
@@ -365,7 +365,7 @@ EOF
 
 **Check outbound server:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SET LINESIZE 200
 COL server_name FORMAT A20
 COL connect_user FORMAT A20
@@ -379,7 +379,7 @@ SELECT server_name,
        total_messages_sent,
        startup_time
 FROM v$xstream_outbound_server
-WHERE server_name = 'CONFLUENT_XOUT1';
+WHERE server_name = '<xstream-outbound-name>';
 
 EXIT;
 EOF
@@ -389,7 +389,7 @@ EOF
 ```
 SERVER_NAME          CONNECT_USER         STATUS     STATE           TOTAL_MESSAGES_SENT
 -------------------- -------------------- ---------- --------------- -------------------
-CONFLUENT_XOUT1      C##CONFLUENT_ADMIN   ENABLED    SENDING                14,019,801
+<xstream-outbound-name>      <xstream-connect-user>   ENABLED    SENDING                14,019,801
 ```
 
 **If STATE is WAITING FOR CLIENT:**
@@ -402,7 +402,7 @@ CONFLUENT_XOUT1      C##CONFLUENT_ADMIN   ENABLED    SENDING                14,0
 
 **Real-time redo generation (run during test):**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SET LINESIZE 200
 COL thread# FORMAT 99
 COL redo_mb_per_sec FORMAT 999,999.99
@@ -422,7 +422,7 @@ EOF
 
 **Archive log generation (post-test):**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SET LINESIZE 200
 COL thread# FORMAT 99
 COL gb FORMAT 999,999.99
@@ -458,28 +458,28 @@ THREAD#         GB LOG_SWITCHES
 **Stop Oracle RAC database:**
 ```bash
 # Run as Oracle user (usually 'oracle')
-srvctl stop database -d RAC_XSTR
+srvctl stop database -d <database-name>
 
 # Verify
-srvctl status database -d RAC_XSTR
+srvctl status database -d <database-name>
 ```
 
 **Start Oracle RAC database:**
 ```bash
-srvctl start database -d RAC_XSTR
+srvctl start database -d <database-name>
 
 # Verify
-srvctl status database -d RAC_XSTR
+srvctl status database -d <database-name>
 ```
 
 **Stop single instance:**
 ```bash
-srvctl stop instance -d RAC_XSTR -i RAC_XSTR1
+srvctl stop instance -d <database-name> -i <database-name>1
 ```
 
 **Start single instance:**
 ```bash
-srvctl start instance -d RAC_XSTR -i RAC_XSTR1
+srvctl start instance -d <database-name> -i <database-name>1
 ```
 
 ---
@@ -488,9 +488,9 @@ srvctl start instance -d RAC_XSTR -i RAC_XSTR1
 
 **Stop XStream capture:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 BEGIN
-  DBMS_XSTREAM_ADM.STOP_CAPTURE(capture_name => 'CONFLUENT_XOUT1');
+  DBMS_XSTREAM_ADM.STOP_CAPTURE(capture_name => '<xstream-outbound-name>');
 END;
 /
 EXIT;
@@ -499,9 +499,9 @@ EOF
 
 **Start XStream capture:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 BEGIN
-  DBMS_XSTREAM_ADM.START_CAPTURE(capture_name => 'CONFLUENT_XOUT1');
+  DBMS_XSTREAM_ADM.START_CAPTURE(capture_name => '<xstream-outbound-name>');
 END;
 /
 EXIT;
@@ -510,11 +510,11 @@ EOF
 
 **Restart XStream (stop + start):**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 BEGIN
-  DBMS_XSTREAM_ADM.STOP_CAPTURE(capture_name => 'CONFLUENT_XOUT1');
+  DBMS_XSTREAM_ADM.STOP_CAPTURE(capture_name => '<xstream-outbound-name>');
   DBMS_LOCK.SLEEP(5);
-  DBMS_XSTREAM_ADM.START_CAPTURE(capture_name => 'CONFLUENT_XOUT1');
+  DBMS_XSTREAM_ADM.START_CAPTURE(capture_name => '<xstream-outbound-name>');
 END;
 /
 EXIT;
@@ -594,12 +594,12 @@ docker exec kafka1 kafka-topics --bootstrap-server localhost:9092 --list
 
 # Describe specific topic
 docker exec kafka1 kafka-topics --bootstrap-server localhost:9092 --describe \
-  --topic ORDERMGMT.MTX_TRANSACTION_ITEMS
+  --topic <schema-name>.MTX_TRANSACTION_ITEMS
 
 # Get topic message count
 docker exec kafka1 kafka-run-class kafka.tools.GetOffsetShell \
   --broker-list localhost:9092 \
-  --topic ORDERMGMT.MTX_TRANSACTION_ITEMS \
+  --topic <schema-name>.MTX_TRANSACTION_ITEMS \
   --time -1
 
 # Consumer group lag
@@ -729,10 +729,10 @@ docker logs -f schema-registry
 curl -s http://localhost:8081/subjects | jq .
 
 # Get schema for specific subject
-curl -s http://localhost:8081/subjects/ORDERMGMT.MTX_TRANSACTION_ITEMS-value/versions/latest | jq .
+curl -s http://localhost:8081/subjects/<schema-name>.MTX_TRANSACTION_ITEMS-value/versions/latest | jq .
 
 # List all schema versions
-curl -s http://localhost:8081/subjects/ORDERMGMT.MTX_TRANSACTION_ITEMS-value/versions | jq .
+curl -s http://localhost:8081/subjects/<schema-name>.MTX_TRANSACTION_ITEMS-value/versions | jq .
 ```
 
 ---
@@ -808,7 +808,7 @@ echo "Shutdown complete!"
 docker ps --filter "name=grafana"
 
 # Access web UI
-# URL: http://137.131.53.98:3000
+# URL: http://<kafka-vm-ip>:3000
 # Default credentials: admin/admin (likely changed)
 ```
 
@@ -827,7 +827,7 @@ docker logs -f grafana
 **Access Grafana dashboards:**
 ```bash
 # Open in browser
-open http://137.131.53.98:3000
+open http://<kafka-vm-ip>:3000
 
 # List dashboards via API
 curl -s http://admin:admin@localhost:3000/api/search | jq .
@@ -1062,7 +1062,7 @@ puts "MTX driver loaded"
 # Configure
 set VIRTUAL_USERS 48
 set ITERATIONS 292078
-set ORACLE_SERVICE "RAC_XSTRPDB_POC"
+set ORACLE_SERVICE "<database-name>PDB_POC"
 set ORACLE_USER "ordermgmt"
 set ORACLE_PASSWORD "ordermgmt"
 
@@ -1078,22 +1078,22 @@ quit
 **Monitor test in real-time:**
 ```bash
 # Terminal 1: Watch Oracle sessions
-watch -n 5 'sqlplus -S sys/ConFL#_uent12@RAC_XSTRPDB_POC as sysdba <<< "
+watch -n 5 'sqlplus -S sys/<sys-password>@<database-name>PDB_POC as sysdba <<< "
   SELECT COUNT(*) AS active_sessions 
   FROM v\$session 
-  WHERE username = '\''ORDERMGMT'\'' 
+  WHERE username = '\''<schema-name>'\'' 
   AND status = '\''ACTIVE'\'';
 "'
 
 # Terminal 2: Watch row count
-watch -n 10 'sqlplus -S ordermgmt/ordermgmt@RAC_XSTRPDB_POC <<< "
+watch -n 10 'sqlplus -S <schema-user>/<schema-password>@<database-name>PDB_POC <<< "
   SELECT COUNT(*) FROM mtx_transaction_items;
 "'
 
 # Terminal 3: Watch Kafka topic message count
 watch -n 10 'docker exec kafka1 kafka-run-class kafka.tools.GetOffsetShell \
   --broker-list localhost:9092 \
-  --topic ORDERMGMT.MTX_TRANSACTION_ITEMS \
+  --topic <schema-name>.MTX_TRANSACTION_ITEMS \
   --time -1 | awk -F: '\''{sum += $3} END {print "Total messages:", sum}'\'
 ```
 
@@ -1103,7 +1103,7 @@ watch -n 10 'docker exec kafka1 kafka-run-class kafka.tools.GetOffsetShell \
 
 **Verify row count:**
 ```bash
-sqlplus ordermgmt/ordermgmt@RAC_XSTRPDB_POC <<'EOF'
+sqlplus <schema-user>/<schema-password>@<database-name>PDB_POC <<'EOF'
 SELECT TO_CHAR(COUNT(*), '999,999,999,999') AS total_rows 
 FROM mtx_transaction_items;
 EXIT;
@@ -1117,7 +1117,7 @@ EOF
 # Get total message count in Kafka topic
 docker exec kafka1 kafka-run-class kafka.tools.GetOffsetShell \
   --broker-list localhost:9092 \
-  --topic ORDERMGMT.MTX_TRANSACTION_ITEMS \
+  --topic <schema-name>.MTX_TRANSACTION_ITEMS \
   --time -1 | awk -F: '{sum += $3} END {print "Total messages:", sum}'
 
 # Expected: 14,019,801 (should match Oracle insert count)
@@ -1125,12 +1125,12 @@ docker exec kafka1 kafka-run-class kafka.tools.GetOffsetShell \
 
 **Verify XStream statistics:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SELECT server_name,
        total_messages_sent,
        total_messages_sent - LAG(total_messages_sent) OVER (ORDER BY startup_time) AS messages_this_test
 FROM v$xstream_outbound_server
-WHERE server_name = 'CONFLUENT_XOUT1';
+WHERE server_name = '<xstream-outbound-name>';
 EXIT;
 EOF
 ```
@@ -1152,17 +1152,17 @@ echo ""
 
 echo "1. ORACLE RAC CLUSTER"
 echo "---------------------"
-srvctl status database -d RAC_XSTR 2>/dev/null || echo "  ⚠️  Oracle RAC not reachable"
+srvctl status database -d <database-name> 2>/dev/null || echo "  ⚠️  Oracle RAC not reachable"
 echo ""
 
 echo "2. XSTREAM CAPTURE"
 echo "------------------"
-sqlplus -S sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus -S sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SET FEEDBACK OFF
 SET HEADING OFF
 SELECT '  Status: ' || status || ' | State: ' || state 
 FROM v$xstream_capture 
-WHERE capture_name = 'CONFLUENT_XOUT1';
+WHERE capture_name = '<xstream-outbound-name>';
 EXIT;
 EOF
 echo ""
@@ -1208,7 +1208,7 @@ echo "7. GRAFANA"
 echo "----------"
 GRAFANA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
 if [ "$GRAFANA_STATUS" = "200" ]; then
-  echo "  ✅ Grafana ONLINE (http://137.131.53.98:3000)"
+  echo "  ✅ Grafana ONLINE (http://<kafka-vm-ip>:3000)"
 else
   echo "  ❌ Grafana OFFLINE"
 fi
@@ -1238,7 +1238,7 @@ echo "========================================="
 # Check all critical components
 docker ps --filter "name=kafka1|connect" --format "{{.Names}}: {{.Status}}" && \
 curl -s http://localhost:8083/connectors/confluent-xstream-source/status | jq -r '.connector.state' | xargs echo "Connector:" && \
-sqlplus -S sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<< "SELECT status FROM v\$xstream_capture WHERE capture_name='CONFLUENT_XOUT1';"
+sqlplus -S sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<< "SELECT status FROM v\$xstream_capture WHERE capture_name='<xstream-outbound-name>';"
 ```
 
 **Check for errors:**
@@ -1269,7 +1269,7 @@ lsnrctl status
 docker exec connect ping -c 3 <oracle-hostname>
 
 # 3. Test SQL*Net connection
-docker exec connect sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<< "SELECT 'CONNECTED' FROM dual;"
+docker exec connect sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<< "SELECT 'CONNECTED' FROM dual;"
 
 # 4. Check tnsnames.ora inside Connect container
 docker exec connect cat $ORACLE_HOME/network/admin/tnsnames.ora
@@ -1284,7 +1284,7 @@ docker restart connect
 
 **Symptoms:**
 ```sql
-SELECT state FROM v$xstream_outbound_server WHERE server_name='CONFLUENT_XOUT1';
+SELECT state FROM v$xstream_outbound_server WHERE server_name='<xstream-outbound-name>';
 -- Returns: WAITING FOR CLIENT
 ```
 
@@ -1447,7 +1447,7 @@ echo "Recovery complete!"
 
 **Oracle redo generation:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SET LINESIZE 200
 SELECT thread#,
        ROUND(SUM(blocks * block_size) / 1024 / 1024 / 1024, 2) AS gb,
@@ -1464,12 +1464,12 @@ EOF
 
 **XStream message count:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SELECT server_name,
        total_messages_sent,
        total_messages_sent / ((SYSDATE - startup_time) * 24 * 60 * 60) AS messages_per_sec
 FROM v$xstream_outbound_server
-WHERE server_name = 'CONFLUENT_XOUT1';
+WHERE server_name = '<xstream-outbound-name>';
 EXIT;
 EOF
 ```
@@ -1479,12 +1479,12 @@ EOF
 # Message count
 docker exec kafka1 kafka-run-class kafka.tools.GetOffsetShell \
   --broker-list localhost:9092 \
-  --topic ORDERMGMT.MTX_TRANSACTION_ITEMS \
+  --topic <schema-name>.MTX_TRANSACTION_ITEMS \
   --time -1 | awk -F: '{sum += $3} END {printf "Total messages: %'\''d\n", sum}'
 
 # Topic size
 docker exec kafka1 kafka-log-dirs --bootstrap-server localhost:9092 \
-  --topic-list ORDERMGMT.MTX_TRANSACTION_ITEMS --describe | grep size
+  --topic-list <schema-name>.MTX_TRANSACTION_ITEMS --describe | grep size
 ```
 
 ---
@@ -1493,7 +1493,7 @@ docker exec kafka1 kafka-log-dirs --bootstrap-server localhost:9092 \
 
 ### 9.1 Key URLs
 
-- **Grafana Dashboard:** http://137.131.53.98:3000
+- **Grafana Dashboard:** http://<kafka-vm-ip>:3000
 - **Prometheus UI:** http://localhost:9090
 - **Kafka Connect REST:** http://localhost:8083
 - **Schema Registry:** http://localhost:8081
@@ -1513,8 +1513,8 @@ docker exec kafka1 kafka-log-dirs --bootstrap-server localhost:9092 \
 - Docker volumes: `docker volume ls`
 
 **Oracle:**
-- Alert log: `$ORACLE_BASE/diag/rdbms/rac_xstr/RAC_XSTR1/trace/alert_RAC_XSTR1.log`
-- Archive logs: `+FRA/RAC_XSTR/ARCHIVELOG`
+- Alert log: `$ORACLE_BASE/diag/rdbms/rac_xstr/<database-name>1/trace/alert_<database-name>1.log`
+- Archive logs: `+FRA/<database-name>/ARCHIVELOG`
 
 ---
 
@@ -1522,10 +1522,10 @@ docker exec kafka1 kafka-log-dirs --bootstrap-server localhost:9092 \
 
 ```bash
 # Oracle status
-srvctl status database -d RAC_XSTR
+srvctl status database -d <database-name>
 
 # XStream status
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<< "SELECT status, state FROM v\$xstream_capture WHERE capture_name='CONFLUENT_XOUT1';"
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<< "SELECT status, state FROM v\$xstream_capture WHERE capture_name='<xstream-outbound-name>';"
 
 # All Docker containers
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
@@ -1543,7 +1543,7 @@ curl -s http://localhost:8083/connectors/confluent-xstream-source/status | jq '.
 docker exec kafka1 kafka-topics --bootstrap-server localhost:9092 --list
 
 # Grafana
-open http://137.131.53.98:3000
+open http://<kafka-vm-ip>:3000
 
 # Full health check
 ./comprehensive-health-check.sh
@@ -1557,14 +1557,14 @@ open http://137.131.53.98:3000
 
 **Configure XStream to capture additional tables:**
 ```bash
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 -- Add new table to capture
 BEGIN
   DBMS_XSTREAM_ADM.ADD_TABLE_RULES(
-    table_name => 'ORDERMGMT.MTX_NEW_TABLE',
+    table_name => '<schema-name>.MTX_NEW_TABLE',
     streams_type => 'CAPTURE',
-    streams_name => 'CONFLUENT_XOUT1',
-    queue_name => 'CONFLUENT_XOUT1_QUEUE',
+    streams_name => '<xstream-outbound-name>',
+    queue_name => '<xstream-outbound-name>_QUEUE',
     include_dml => TRUE,
     include_ddl => FALSE,
     source_database => NULL
@@ -1573,7 +1573,7 @@ END;
 /
 
 -- Enable supplemental logging
-ALTER TABLE ORDERMGMT.MTX_NEW_TABLE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS;
+ALTER TABLE <schema-name>.MTX_NEW_TABLE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS;
 
 EXIT;
 EOF
@@ -1593,10 +1593,10 @@ docker exec kafka1 kafka-topics --bootstrap-server localhost:9092 --list | grep 
 **Backup XStream configuration:**
 ```bash
 # Export XStream configuration
-sqlplus sys/'ConFL#_uent12'@RAC_XSTRPDB_POC as sysdba <<'EOF'
+sqlplus sys/'<sys-password>'@<database-name>PDB_POC as sysdba <<'EOF'
 SET LONG 100000
 SET PAGESIZE 0
-SELECT DBMS_METADATA.GET_DDL('CAPTURE', 'CONFLUENT_XOUT1') FROM DUAL;
+SELECT DBMS_METADATA.GET_DDL('CAPTURE', '<xstream-outbound-name>') FROM DUAL;
 EXIT;
 EOF > xstream_capture_ddl.sql
 ```
