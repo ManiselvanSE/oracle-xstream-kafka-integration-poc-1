@@ -151,9 +151,9 @@
 
 ## COMPARISON TO PREVIOUS TESTS
 
-### Test 1 vs Test 2
+### April 15 vs April 16
 
-| Metric | April 15 - Test 1 | April 16 - Test 2 | Improvement |
+| Metric | April 15 Test | April 16 Test | Improvement |
 |--------|---------------|---------------|-------------|
 | **Rows Inserted** | 400,000 | 14,019,801 | **35x** |
 | **Duration** | 13:19 | ~22:00 | 1.7x |
@@ -206,18 +206,24 @@
 - ✅ Zero errors, 100% success rate
 - ✅ XStream and Kafka operational throughout
 
- **Test 2 - Redo Generation Pattern & Log Switch Impact**  
-                       
-  **Redo Generation Profile:**                  
-  Estimated Timeline (Pending v$archived_log Confirmation):                                                                                                                                                           
-  - **00:29:00 - 00:30:00 (1 min):** ~40-50 GB redo (~700-850 MB/sec peak)
-  - **00:30:00 - 00:35:00 (5 min):** ~5-6 GB redo (~17-20 MB/sec) 
-  - **00:35:00 - 00:51:33 (16 min):** <1 GB redo (<1 MB/sec)                                                                                                                                                           
-  **Log Switch Pattern:**                           
-  Assuming 1024 MB online redo log groups:                                                                                                                                                                           
-  - **Peak period (first 1-5 min):** 40-50 log switches (1 switch every 1-2 seconds during burst)  
-  - **Sustain period (remaining 17 min):** 20-25 log switches (1 switch every ~40 seconds)   
-  - **Total:** ~70 switches                 
+---
+
+**Test 2 - Redo Generation Pattern & Log Switch Impact**
+
+**Redo Generation Profile:**  
+Estimated Timeline (Pending v$archived_log Confirmation):
+
+- **00:29:00 - 00:30:00 (1 min):** ~40-50 GB redo (~700-850 MB/sec peak)
+- **00:30:00 - 00:35:00 (5 min):** ~5-6 GB redo (~17-20 MB/sec)
+- **00:35:00 - 00:51:33 (16 min):** <1 GB redo (<1 MB/sec)
+
+**Log Switch Pattern:**  
+Assuming 1024 MB online redo log groups:
+
+- **Peak period (first 1-5 min):** 40-50 log switches (1 switch every 1-2 seconds during burst)
+- **Sustain period (remaining 17 min):** 20-25 log switches (1 switch every ~40 seconds)
+- **Total:** ~70 switches
+
 ---
 
 ## TEST VALIDATION ✅
@@ -719,3 +725,94 @@ The April 16 test definitively proves the infrastructure can handle production-s
 **Status:** ✅ SUCCESSFUL - PRODUCTION READY  
 **Scale Validated:** 14,019,801 rows | 48 sessions | 1,063 rows/sec  
 **Recommendation:** **IMMEDIATE PRODUCTION DEPLOYMENT APPROVED**
+
+---
+
+## ARCHITECTURE OVERVIEW
+
+### 1.1 End-to-End Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    HIGH-THROUGHPUT CDC PIPELINE                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│   ORACLE     │         │   XSTREAM    │         │    KAFKA     │
+│   DATABASE   │────────>│   CAPTURE    │────────>│   CONNECT    │
+│   (RAC 2N)   │  Redo   │  + OUTBOUND  │  LCRs   │ Connector    │
+└──────────────┘  Logs   └──────────────┘  (OCI)  └──────────────┘
+      │                                                    │
+      │ 1. DML Operations                                  │
+      │    (INSERTs via HammerDB)                          │
+      │                                                    │
+      │ 2. Redo Log Generation                             v
+      │    (700-800 MB/sec)                    ┌──────────────────┐
+      │                                        │   KAFKA BROKER   │
+      │ 3. Archive Logs                        │    CLUSTER       │
+      │    (Log switches every 1-2 sec)        │    (3 nodes)     │
+      │                                        └──────────────────┘
+      v                                                 │
+┌──────────────────────┐                                │
+│ XStream Integrated   │                                v
+│ Capture Process      │                     ┌──────────────────┐
+│                      │                     │  KAFKA TOPICS    │
+│ - Mines redo logs    │                     │  (CDC events)    │
+│ - Creates LCRs       │                     │                  │
+│ - Enqueues messages  │                     │ - Partitioned    │
+└──────────────────────┘                     │ - Replicated     │
+      │                                      │ - Compacted      │
+      │                                      └──────────────────┘
+      v
+┌──────────────────────┐
+│ XStream Outbound     │         ┌─────────────────────────────┐
+│ Server (XOUT)        │         │   LATENCY BREAKDOWN         │
+│                      │         ├─────────────────────────────┤
+│ - Dequeues LCRs      │         │ Oracle Capture:   20-60 ms  │
+│ - Sends to connector │         │ XStream Outbound: 30-80 ms  │
+│   via OCI calls      │         │ Connector Process: 30-60 ms │
+│ - Maintains position │         │ Kafka Publish:    10-20 ms  │
+└──────────────────────┘         │ TOTAL:           90-220 ms  │
+                                 └─────────────────────────────┘
+```
+
+### 1.2 Component Responsibilities
+
+| Component | Role | Key Function |
+|-----------|------|--------------|
+| **Oracle RAC Database** | Source of truth | Generates redo logs from DML operations |
+| **XStream Integrated Capture** | Log mining | Mines redo/archive logs, creates Logical Change Records (LCRs) |
+| **XStream Outbound Server** | Event streaming | Dequeues LCRs from Streams queue, sends to connector via OCI |
+| **Kafka Connect (Source)** | CDC client | Receives LCRs, transforms to Kafka records, publishes to topics |
+| **Kafka Brokers** | Event distribution | Stores CDC events, manages partitions, serves consumers |
+| **HammerDB** | Load generation | Simulates high-throughput transactional workload |
+
+### 1.3 Technology Versions
+
+**Oracle Database:**
+- Version: 19.29.0.0.0
+- Edition: Enterprise Edition
+- Configuration: Real Application Clusters (RAC) - 2 nodes
+- OS: Oracle Linux 8.x
+
+**XStream:**
+- Type: Integrated Capture (LogMiner-based)
+- Outbound Server: CDB$ROOT container
+- Capture Mode: Online + Archive log mining
+
+**Kafka Connect:**
+- Version: 3.6.x (Confluent Platform 7.6.x)
+- Connector: Oracle XStream Source Connector (Confluent Hub)
+- Deployment: Standalone worker (upgradeable to distributed)
+
+**Apache Kafka:**
+- Version: 3.6.x
+- Brokers: 3 nodes
+- Replication: 3x (minimum for production)
+
+**HammerDB:**
+- Version: 4.10
+- Workload: Custom MTX driver (INSERT-heavy, single table)
+- Deployment: Remote client VM
+
+---
