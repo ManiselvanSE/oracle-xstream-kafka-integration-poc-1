@@ -210,6 +210,7 @@
                       
   Redo Generation Profile:
   Estimated Timeline (Pending v$archived_log Confirmation):
+  
   00:29:00 - 00:30:00 (1 min):   ~40-50 GB redo  (~700-850 MB/sec peak) 
   00:30:00 - 00:35:00 (5 min):   ~5-6 GB redo    (~17-20 MB/sec)  
   00:35:00 - 00:51:33 (16 min):  <1 GB redo      (<1 MB/sec)  
