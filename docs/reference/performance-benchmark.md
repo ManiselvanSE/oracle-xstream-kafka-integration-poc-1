@@ -1,4 +1,4 @@
-# MTX_TRANSACTION_ITEMS 30-Minute Load Test - Airtel Format Results
+# MTX_TRANSACTION_ITEMS 30-Minute Load Test - Performance Test Results
 ## April 16, 2026 - Test Period: 00:29-00:51 IST (~22 minutes)
 
 ---
@@ -517,9 +517,9 @@ The test was monitored every 60 seconds via automated progress checks. Key obser
 ## FILES & ARTIFACTS
 
 ### Test Results Location
-- **Progress Log:** `/Users/maniselvank/Mani/customer/airtel/mtx-30min-progress.log`
-- **Dashboard:** `/Users/maniselvank/Mani/customer/airtel/mtx-30min-dashboard.txt`
-- **This Report:** `HammerDB_30min_Load_Test_Report_April_16_2026_AIRTEL_FORMAT.md`
+- **Progress Log:** `/path/to/test/results/mtx-30min-progress.log`
+- **Dashboard:** `/path/to/test/results/mtx-30min-dashboard.txt`
+- **This Report:** `HammerDB_30min_Load_Test_Report_April_16_2026_PERFORMANCE_TEST.md`
 
 ### Grafana Dashboards
 - XStream Throughput & Performance
@@ -562,7 +562,7 @@ The April 16 test definitively proves the infrastructure can handle production-s
 ---
 
 **Test Completed:** April 16, 2026 00:51:33 IST  
-**Report Format:** Airtel Summary Compatible  
+**Report Format:** Standard Performance Report Format  
 **Test ID:** mtx-30min-test-20260416  
 **Status:** ✅ SUCCESSFUL - PRODUCTION READY  
 **Scale Validated:** 14,019,801 rows | 48 sessions | 1,063 rows/sec  
