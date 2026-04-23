@@ -18,7 +18,7 @@
 
 ### 📊 Primary Results
 
-| Metric | Value | Unit | vs April 15 Test |
+| Metric | Value | Unit | vs April 15 - Test 1 |
 |--------|-------|------|------------------|
 | **Rows Inserted** | **14,019,801** | rows | **35x** |
 | **Test Duration** | **~22 minutes** | mm | ~1.7x |
