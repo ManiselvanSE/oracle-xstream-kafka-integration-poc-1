@@ -151,9 +151,9 @@
 
 ## COMPARISON TO PREVIOUS TESTS
 
-### April 15 vs April 16
+### Test 1 vs Test 2
 
-| Metric | April 15 Test | April 16 Test | Improvement |
+| Metric | April 15 - Test 1 | April 16 - Test 2 | Improvement |
 |--------|---------------|---------------|-------------|
 | **Rows Inserted** | 400,000 | 14,019,801 | **35x** |
 | **Duration** | 13:19 | ~22:00 | 1.7x |
@@ -206,6 +206,18 @@
 - ✅ Zero errors, 100% success rate
 - ✅ XStream and Kafka operational throughout
 
+**Test 2 - Redo Generation Pattern & Log Switch Impact  **         
+                      
+  Redo Generation Profile:
+  Estimated Timeline (Pending v$archived_log Confirmation):
+  00:29:00 - 00:30:00 (1 min):   ~40-50 GB redo  (~700-850 MB/sec peak) 
+  00:30:00 - 00:35:00 (5 min):   ~5-6 GB redo    (~17-20 MB/sec)  
+  00:35:00 - 00:51:33 (16 min):  <1 GB redo      (<1 MB/sec)  
+  Log Switch Pattern:                               
+  Assuming 1024 MB online redo log groups:                                                                                                                                                                            
+  - Peak period (first 1-5 min): 40-50 log switches (1 switch every 1-2 seconds during burst)
+  - Sustain period (remaining 17 min): 20-25 log switches (1 switch every ~40 seconds)                                                                                                                                
+  - Total: ~70 switches  
 ---
 
 ## TEST VALIDATION ✅
